@@ -17,6 +17,32 @@
 class NmeaBuilder
 {
 public:
+    struct Utc
+    {
+        int hour;
+        int min;
+        float sec;
+    };
+
+    struct Position
+    {
+        double lat_deg;
+        double lon_deg;
+    };
+
+    struct Dgps
+    {
+        float age;
+        int station_id;
+    };
+
+    struct Date
+    {
+        int day;
+        int month;
+        int year;
+    };
+
     // --- Setters ---
 
     /**
@@ -138,38 +164,30 @@ public:
      */
     std::string get_gprmc() const;
 
+    // --- Raw value getters ---
+
+    const std::optional<Utc> &utc() const { return utc_; }
+    const std::optional<Position> &position() const { return position_; }
+    const std::optional<int> &quality() const { return quality_; }
+    const std::optional<int> &num_satellites() const { return num_satellites_; }
+    const std::optional<float> &hdop() const { return hdop_; }
+    const std::optional<float> &altitude() const { return altitude_; }
+    const std::optional<float> &geoid_height() const { return geoid_height_; }
+    const std::optional<Dgps> &dgps() const { return dgps_; }
+    const std::optional<float> &heading() const { return heading_; }
+    const std::optional<char> &status() const { return status_; }
+    const std::optional<float> &speed_knots() const { return speed_knots_; }
+    const std::optional<float> &course_degrees() const { return course_degrees_; }
+    const std::optional<Date> &date() const { return date_; }
+    const std::optional<float> &magnetic_variation() const { return magnetic_variation_; }
+    const std::optional<char> &mode_indicator() const { return mode_indicator_; }
+
 private:
     static uint8_t nmea_checksum(const std::string &sentence);
     static std::string deg_to_nmea_lat(double deg, char &ns);
     static std::string deg_to_nmea_lon(double deg, char &ew);
     static std::string format_utc(int hour, int min, float sec);
     static std::string format_date(int day, int month, int year);
-
-    struct Utc
-    {
-        int hour;
-        int min;
-        float sec;
-    };
-
-    struct Position
-    {
-        double lat_deg;
-        double lon_deg;
-    };
-
-    struct Dgps
-    {
-        float age;
-        int station_id;
-    };
-
-    struct Date
-    {
-        int day;
-        int month;
-        int year;
-    };
 
     std::optional<Utc> utc_;
     std::optional<Position> position_;
