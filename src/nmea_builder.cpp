@@ -47,6 +47,36 @@ void NmeaBuilder::set_heading(float heading)
     heading_ = heading;
 }
 
+void NmeaBuilder::set_status(char status)
+{
+    status_ = status;
+}
+
+void NmeaBuilder::set_speed_knots(float speed)
+{
+    speed_knots_ = speed;
+}
+
+void NmeaBuilder::set_course(float course)
+{
+    course_degrees_ = course;
+}
+
+void NmeaBuilder::set_date(int day, int month, int year)
+{
+    date_ = {day, month, year};
+}
+
+void NmeaBuilder::set_magnetic_variation(float magvar)
+{
+    magnetic_variation_ = magvar;
+}
+
+void NmeaBuilder::set_mode_indicator(char mode)
+{
+    mode_indicator_ = mode;
+}
+
 // --- Getters ---
 
 std::string NmeaBuilder::get_gpgga() const
@@ -99,6 +129,55 @@ std::string NmeaBuilder::get_gphdt() const
     return std::string(sentence);
 }
 
+std::string NmeaBuilder::get_gprmc() const
+{
+    if (!utc_)
+        throw std::runtime_error("GPRMC: utc has not been set");
+    if (!status_)
+        throw std::runtime_error("GPRMC: status has not been set");
+    if (!position_)
+        throw std::runtime_error("GPRMC: position has not been set");
+    if (!speed_knots_)
+        throw std::runtime_error("GPRMC: speed_knots has not been set");
+    if (!course_degrees_)
+        throw std::runtime_error("GPRMC: course has not been set");
+    if (!date_)
+        throw std::runtime_error("GPRMC: date has not been set");
+    if (!mode_indicator_)
+        throw std::runtime_error("GPRMC: mode_indicator has not been set");
+
+    char ns, ew;
+    std::string utc = format_utc(utc_->hour, utc_->min, utc_->sec);
+    std::string lat = deg_to_nmea_lat(position_->lat_deg, ns);
+    std::string lon = deg_to_nmea_lon(position_->lon_deg, ew);
+    std::string date = format_date(date_->day, date_->month, date_->year);
+
+    std::string magvar_str;
+    std::string magdir_str;
+    if (magnetic_variation_)
+    {
+        char magdir = (*magnetic_variation_ >= 0.0f) ? 'E' : 'W';
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.1f", std::fabs(*magnetic_variation_));
+        magvar_str = buf;
+        magdir_str = magdir;
+    }
+
+    char body[160];
+    snprintf(body, sizeof(body),
+             "GPRMC,%s,%c,%s,%c,%s,%c,%.1f,%.1f,%s,%s,%s,%c",
+             utc.c_str(), *status_,
+             lat.c_str(), ns, lon.c_str(), ew,
+             *speed_knots_, *course_degrees_,
+             date.c_str(),
+             magvar_str.c_str(), magdir_str.c_str(),
+             *mode_indicator_);
+
+    char sentence[180];
+    snprintf(sentence, sizeof(sentence), "$%s*%02X", body, nmea_checksum(body));
+    return std::string(sentence);
+}
+
 // --- Private helpers ---
 
 uint8_t NmeaBuilder::nmea_checksum(const std::string &sentence)
@@ -137,5 +216,12 @@ std::string NmeaBuilder::format_utc(int hour, int min, float sec)
 {
     char buf[16];
     snprintf(buf, sizeof(buf), "%02d%02d%05.2f", hour, min, sec);
+    return std::string(buf);
+}
+
+std::string NmeaBuilder::format_date(int day, int month, int year)
+{
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%02d%02d%02d", day, month, year % 100);
     return std::string(buf);
 }
